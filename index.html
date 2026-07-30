@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meissa Sy — Mechanical Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;800&family=Newsreader:ital,wght@0,400;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#c8c4a7;
+    --bg-soft:#bfbb9d;
+    --bg-dark:#2b2a26;
+    --bg-dark-soft:#333229;
+    --ink:#2c2b27;
+    --ink-soft:#5c584c;
+    --paper:#dbd7be;
+    --paper-soft:#a6a28a;
+    --line:rgba(44,43,39,0.28);
+    --line-strong:rgba(44,43,39,0.55);
+    --line-dark:rgba(219,215,190,0.22);
+    --line-dark-strong:rgba(219,215,190,0.5);
+    --rust:#8a4a2f;
+    --rust-dark:#c98a68;
+    --display:'Bricolage Grotesque',sans-serif;
+    --serif:'Newsreader',serif;
+    --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--mono);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a{color:inherit;}
+  ::selection{background:var(--rust);color:var(--paper);}
+
+  .grid-bg{
+    background-image:radial-gradient(var(--line) 1px, transparent 1px);
+    background-size:26px 26px;
+  }
+  .grid-bg-dark{
+    background-image:radial-gradient(var(--line-dark) 1px, transparent 1px);
+    background-size:26px 26px;
+  }
+
+  .app{min-height:100vh;display:flex;flex-direction:column;}
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px 32px;
+    position:relative;
+    z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{
+    width:22px;height:22px;position:relative;flex-shrink:0;
+  }
+  .brand-mark svg{width:100%;height:100%;}
+  .brand-text{line-height:1.15;}
+  .brand-name{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.04em;}
+  .brand-role{font-family:var(--mono);font-size:10px;color:var(--ink-soft);letter-spacing:.03em;}
+  .view-archive .brand-role, .view-archive .brand-name, .view-manifesto .brand-role, .view-manifesto .brand-name{color:inherit;}
+
+  nav.tabs{
+    display:flex;gap:28px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.05em;
+  }
+  nav.tabs button{
+    background:none;border:none;cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-soft);
+    padding:4px 0;position:relative;
+  }
+  nav.tabs button .n{opacity:.55;margin-right:2px;}
+  nav.tabs button.active{color:var(--ink);}
+  nav.tabs button.active::after{
+    content:'';position:absolute;left:0;right:0;bottom:-6px;height:1px;background:var(--rust);
+  }
+  #view-archive nav.tabs button, #view-manifesto nav.tabs button{color:var(--paper-soft);}
+  #view-archive nav.tabs button.active, #view-manifesto nav.tabs button.active{color:var(--paper);}
+
+  .topbar-right{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+
+  /* ---------- VIEWS ---------- */
+  main{flex:1;position:relative;}
+  .view{
+    position:absolute;inset:0;
+    opacity:0;pointer-events:none;
+    transform:translateY(8px);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  .view.active{opacity:1;pointer-events:auto;transform:translateY(0);position:relative;}
+
+  /* ================= HOME ================= */
+  #view-home{min-height:calc(100vh - 74px);}
+  .orbit-wrap{position:relative;width:100%;height:min(72vh,640px);}
+  .orbit-svg{width:100%;height:100%;display:block;}
+  .orbit-svg .line{stroke:var(--line);stroke-width:1;}
+  .orbit-svg .dot{fill:var(--ink-soft);}
+  .orbit-svg .word{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:14px;
+    fill:var(--ink-soft);
+    cursor:default;
+    transition:fill .25s ease;
+  }
+  .orbit-svg .word:hover{fill:var(--rust);}
+  .orbit-svg .center-name{
+    font-family:var(--display);
+    font-weight:800;
+    letter-spacing:-0.01em;
+  }
+  .orbit-svg .center-name tspan.big{font-size:64px;fill:var(--ink);}
+  .scroll-hint{
+    text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.15em;
+    color:var(--ink-soft);text-transform:uppercase;margin-top:-8px;
+  }
+  .orbit-mobile{display:none;}
+
+  .home-footer{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    padding:0 32px 28px;
+  }
+  .home-footer .tagline{
+    font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-soft);max-width:280px;line-height:1.5;
+  }
+  .email-link{
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+    text-decoration:none;border-bottom:1px solid var(--line-strong);padding-bottom:2px;
+  }
+  .email-link:hover{color:var(--rust);border-color:var(--rust);}
+
+  /* ================= MANIFESTO ================= */
+  #view-manifesto{background:var(--bg);color:var(--ink);}
+  .manifesto-layout{
+    display:grid;grid-template-columns:220px 1fr;gap:40px;
+    padding:8vh 32px 10vh;max-width:1100px;margin:0 auto;
+  }
+  .manifesto-meta{font-family:var(--mono);font-size:11px;color:var(--ink-soft);line-height:2;}
+  .manifesto-meta strong{display:block;color:var(--ink);font-weight:500;margin-top:14px;}
+  .manifesto-body h1{
+    font-family:var(--serif);font-style:italic;font-weight:400;
+    font-size:clamp(28px,4vw,44px);line-height:1.25;margin:0 0 40px;color:var(--ink);
+  }
+  .manifesto-body p{
+    font-family:var(--mono);font-size:13px;line-height:1.9;color:var(--ink-soft);
+    max-width:640px;margin:0 0 22px;
+  }
+  .manifesto-body p strong{color:var(--ink);font-weight:500;}
+
+  /* ================= ARCHIVE ================= */
+  #view-archive{background:var(--bg-dark);color:var(--paper);min-height:100vh;cursor:none;}
+  #view-archive .grid-bg{position:absolute;inset:0;}
+  .archive-list{position:relative;z-index:2;padding:8vh 32px 6vh;max-width:1000px;margin:0 auto;}
+  .archive-item{
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding:22px 4px;border-top:1px solid var(--line-dark);cursor:pointer;
+    transition:padding-left .3s ease;
+  }
+  .archive-item:last-child{border-bottom:1px solid var(--line-dark);}
+  .archive-item:hover{padding-left:14px;}
+  .archive-item .idx{font-family:var(--mono);font-size:11px;color:var(--paper-soft);width:70px;flex-shrink:0;}
+  .archive-item .name{
+    font-family:var(--display);font-weight:600;font-size:clamp(22px,4vw,38px);
+    flex:1;transition:color .3s ease;
+  }
+  .archive-item:hover .name{color:var(--rust-dark);}
+  .archive-item .meta{
+    font-family:var(--mono);font-size:10px;color:var(--paper-soft);text-align:right;
+    letter-spacing:.05em;flex-shrink:0;max-width:220px;
+  }
+  .archive-note{
+    font-family:var(--serif);font-style:italic;font-size:13px;color:var(--paper-soft);
+    padding:0 4px;margin-top:26px;max-width:480px;
+  }
+
+  .detail{
+    position:fixed;inset:0;background:var(--bg-dark);z-index:50;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;
+    opacity:0;pointer-events:none;transition:opacity .4s ease;
+    text-align:center;padding:32px;
+  }
+  .detail.active{opacity:1;pointer-events:auto;}
+  .detail-back{
+    position:absolute;top:24px;left:32px;background:none;border:none;color:var(--paper-soft);
+    font-family:var(--mono);font-size:11px;letter-spacing:.05em;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .detail-back:hover{color:var(--paper);}
+  .detail-title{
+    font-family:var(--display);font-weight:600;font-size:clamp(38px,8vw,86px);
+    color:var(--paper);margin:0 0 22px;letter-spacing:-0.01em;
+  }
+  .detail-desc{
+    font-family:var(--mono);font-size:13px;line-height:1.9;color:var(--paper-soft);
+    max-width:560px;margin:0 auto;
+  }
+  .detail-tags{
+    display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:28px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--rust-dark);
+  }
+  .detail-bottom{
+    position:absolute;bottom:24px;left:32px;right:32px;display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:10px;color:var(--paper-soft);letter-spacing:.05em;
+  }
+
+  .cursor-dot{
+    position:fixed;top:0;left:0;width:8px;height:8px;border-radius:50%;
+    border:1px solid var(--rust-dark);pointer-events:none;z-index:100;
+    transform:translate(-50%,-50%);transition:width .2s,height .2s,opacity .2s;opacity:0;
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:760px){
+    .topbar{padding:18px 18px;flex-wrap:wrap;gap:12px;}
+    nav.tabs{gap:16px;order:3;width:100%;}
+    .orbit-svg{display:none;}
+    .orbit-wrap{height:auto;padding-top:12vh;}
+    .orbit-mobile{
+      display:flex;flex-direction:column;align-items:center;gap:26px;padding:0 20px;
+    }
+    .orbit-mobile .center-name{
+      font-family:var(--display);font-weight:800;font-size:15vw;text-align:center;color:var(--ink);
+    }
+    .orbit-mobile .tag-cloud{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:center;max-width:340px;}
+    .orbit-mobile .tag-cloud span{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-soft);}
+    .home-footer{flex-direction:column;gap:14px;align-items:flex-start;padding:24px 18px;}
+    .manifesto-layout{grid-template-columns:1fr;padding:6vh 20px 8vh;}
+    .archive-item .meta{display:none;}
+    .archive-list{padding:6vh 18px 6vh;}
+    #view-archive{cursor:auto;}
+    .cursor-dot{display:none;}
+  }
+</style>
+</head>
+<body class="grid-bg">
+<div class="app" id="app" data-view="home">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="1.6" fill="currentColor"/>
+          <circle cx="4" cy="6" r="1.2" fill="currentColor"/>
+          <circle cx="20" cy="7" r="1.2" fill="currentColor"/>
+          <circle cx="6" cy="19" r="1.2" fill="currentColor"/>
+          <circle cx="18" cy="18" r="1.2" fill="currentColor"/>
+          <line x1="12" y1="12" x2="4" y2="6" stroke="currentColor" stroke-width="0.7"/>
+          <line x1="12" y1="12" x2="20" y2="7" stroke="currentColor" stroke-width="0.7"/>
+          <line x1="12" y1="12" x2="6" y2="19" stroke="currentColor" stroke-width="0.7"/>
+          <line x1="12" y1="12" x2="18" y2="18" stroke="currentColor" stroke-width="0.7"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">MEISSA SY</div>
+        <div class="brand-role">MECHANICAL ENGINEERING</div>
+      </div>
+    </div>
+
+    <nav class="tabs">
+      <button data-view="home" class="active"><span class="n">01/</span>HOMEPAGE</button>
+      <button data-view="manifesto"><span class="n">02/</span>MANIFESTO</button>
+      <button data-view="archive"><span class="n">03/</span>ARCHIVE</button>
+    </nav>
+
+    <div class="topbar-right" id="topbarRight">MTL</div>
+  </header>
+
+  <main>
+
+    <!-- ============ HOME ============ -->
+    <section class="view active" id="view-home">
+      <div class="orbit-wrap">
+        <svg class="orbit-svg" viewBox="0 0 1000 600" id="orbitSvg"></svg>
+        <div class="orbit-mobile">
+          <div class="center-name">MEISSA<br>SY</div>
+          <div class="tag-cloud" id="tagCloud"></div>
+        </div>
+      </div>
+      <div class="scroll-hint">a constellation of things I build</div>
+      <div class="home-footer">
+        <div class="tagline">Meissa is also the name of a star in Orion's head — this is my orbit: robotics, engineering, and everything I'm building toward.</div>
+        <a class="email-link" href="mailto:hello@meissasy.com">EMAIL ME</a>
+      </div>
+    </section>
+
+    <!-- ============ MANIFESTO ============ -->
+    <section class="view" id="view-manifesto">
+      <div class="manifesto-layout">
+        <div class="manifesto-meta">
+          NAME
+          <strong>Meissa Sy</strong>
+          FIELD
+          <strong>Mechanical Engineering</strong>
+          FOCUS
+          <strong>Robotics &amp; Aerospace Systems</strong>
+          BASED
+          <strong>Montreal, QC</strong>
+          STATUS
+          <strong>Building — always</strong>
+        </div>
+        <div class="manifesto-body">
+          <h1>I don't think in components. I think in systems that have to survive contact with the real world.</h1>
+          <p><strong>Engineering, to me, is a discipline before it's a career.</strong> Every build I take on — in the air, on the workshop floor, or underwater — starts with the same question: what is this thing actually going to have to withstand, and have I designed for that, or just for the spec sheet?</p>
+          <p>I got here through drones. Learning to keep something airborne teaches you fast that elegant math and a working prototype are two very different things — tolerances compound, vibration finds every weak joint, and the part you didn't stress-test is the part that fails. That lesson has followed me into everything since, from running a small manufacturing operation to now building underwater.</p>
+          <p>Outside the shop, I train. <strong>Fitness isn't separate from how I engineer</strong> — both are about showing up for incremental, unglamorous progress and trusting that it compounds. Discipline in the gym and discipline at the workbench are the same muscle.</p>
+          <p>This site is my archive, not my highlight reel. It's where I log what I've built, what I'm building now, and what I'm still figuring out.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ARCHIVE ============ -->
+    <section class="view" id="view-archive">
+      <div class="grid-bg-dark" style="position:absolute;inset:0;"></div>
+      <div class="archive-list" id="archiveList"></div>
+      <div class="cursor-dot" id="cursorDot"></div>
+    </section>
+
+  </main>
+</div>
+
+<div class="detail" id="detailPanel">
+  <button class="detail-back" id="detailBack">&larr; ARCHIVE</button>
+  <h2 class="detail-title" id="detailTitle"></h2>
+  <p class="detail-desc" id="detailDesc"></p>
+  <div class="detail-tags" id="detailTags"></div>
+  <div class="detail-bottom">
+    <span id="detailIdx"></span>
+    <span id="detailYear"></span>
+  </div>
+</div>
+
+<script>
+/* ---------------- DATA ---------------- */
+const orbitWords = [
+  {t:"robotics",    x:600, y:84},
+  {t:"motion",      x:730, y:150},
+  {t:"design",      x:400, y:174},
+  {t:"future",      x:470, y:160},
+  {t:"prototype",   x:430, y:212},
+  {t:"mechanics",   x:735, y:200},
+  {t:"craft",       x:300, y:242},
+  {t:"interface",   x:685, y:230},
+  {t:"structure",   x:280, y:362},
+  {t:"digital",     x:880, y:438},
+  {t:"precision",   x:330, y:480},
+  {t:"vision",      x:365, y:524},
+  {t:"creative",    x:750, y:494},
+  {t:"experience",  x:400, y:534},
+  {t:"innovation",  x:545, y:578},
+  {t:"engineering", x:615, y:568},
+];
+const CENTER = {x:500, y:300};
+
+const projects = [
+  {
+    id:"drone",
+    idx:"AD—01",
+    name:"Aerial Drone",
+    year:"2022",
+    tags:["FLIGHT CONTROL","AERODYNAMICS","PCB DESIGN"],
+    desc:"A custom-built quadcopter designed and assembled from the frame up — flight controller tuning, motor and prop selection, and a lot of trial and error learning what 'aerodynamic' actually means once something has to leave the ground."
+  },
+  {
+    id:"signco",
+    idx:"SC—02",
+    name:"3D Sign Manufacturing Co.",
+    year:"2023",
+    tags:["MANUFACTURING","CNC / 3D PRINTING","ENTREPRENEURSHIP"],
+    desc:"A small manufacturing venture producing dimensional signage — from design files to finished product. Taught me production tolerances, material costs, and what it takes to turn an engineering process into a repeatable business."
+  },
+  {
+    id:"aquatic",
+    idx:"AQ—03",
+    name:"Aquatic Drone",
+    year:"2024 — ongoing",
+    tags:["UNDERWATER ROBOTICS","WATERPROOFING","CONTROL SYSTEMS"],
+    desc:"Current build: an underwater drone, moving from aerial to aquatic systems. New constraints, new failure modes — pressure, sealing, and buoyancy replace the aerodynamics problems I'm used to solving."
+  },
+];
+
+/* ---------------- BUILD ORBIT SVG ---------------- */
+const svg = document.getElementById('orbitSvg');
+const svgNS = "http://www.w3.org/2000/svg";
+function mkEl(tag, attrs){
+  const el = document.createElementNS(svgNS, tag);
+  for(const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+orbitWords.forEach(w=>{
+  const dotOffset = w.x >= CENTER.x ? -10 : 10;
+  const dx = w.x + dotOffset;
+  const line = mkEl('line', {class:'line', x1:CENTER.x, y1:CENTER.y, x2:dx, y2:w.y});
+  svg.appendChild(line);
+  const dot = mkEl('circle', {class:'dot', cx:dx, cy:w.y, r:2.2});
+  svg.appendChild(dot);
+  const text = mkEl('text', {
+    class:'word', x: w.x + (w.x>=CENTER.x? 6 : -6), y: w.y+4,
+    'text-anchor': w.x>=CENTER.x ? 'start' : 'end'
+  });
+  text.textContent = w.t;
+  svg.appendChild(text);
+});
+const centerText = mkEl('text', {class:'center-name', x:CENTER.x, y:CENTER.y+12, 'text-anchor':'middle'});
+const tspan1 = mkEl('tspan', {class:'big'});
+tspan1.textContent = "MEISSA SY";
+centerText.appendChild(tspan1);
+svg.appendChild(centerText);
+
+/* mobile tag cloud */
+const cloud = document.getElementById('tagCloud');
+orbitWords.forEach(w=>{
+  const span = document.createElement('span');
+  span.textContent = w.t;
+  cloud.appendChild(span);
+});
+
+/* ---------------- BUILD ARCHIVE LIST ---------------- */
+const archiveList = document.getElementById('archiveList');
+projects.forEach(p=>{
+  const row = document.createElement('div');
+  row.className = 'archive-item';
+  row.innerHTML = `
+    <span class="idx">${p.idx}</span>
+    <span class="name">${p.name}</span>
+    <span class="meta">${p.tags.join(' — ')}<br>${p.year}</span>
+  `;
+  row.addEventListener('click', ()=>openDetail(p));
+  archiveList.appendChild(row);
+});
+const note = document.createElement('div');
+note.className = 'archive-note';
+note.textContent = "Three builds so far — each one a different medium for the same problem: how do you make something work reliably in a world that doesn't cooperate.";
+archiveList.appendChild(note);
+
+/* ---------------- DETAIL PANEL ---------------- */
+const detailPanel = document.getElementById('detailPanel');
+function openDetail(p){
+  document.getElementById('detailTitle').textContent = p.name;
+  document.getElementById('detailDesc').textContent = p.desc;
+  document.getElementById('detailTags').innerHTML = p.tags.map(t=>`<span>${t}</span>`).join('');
+  document.getElementById('detailIdx').textContent = p.idx;
+  document.getElementById('detailYear').textContent = p.year;
+  detailPanel.classList.add('active');
+}
+document.getElementById('detailBack').addEventListener('click', ()=>{
+  detailPanel.classList.remove('active');
+});
+
+/* ---------------- NAV ---------------- */
+const buttons = document.querySelectorAll('nav.tabs button');
+const views = document.querySelectorAll('.view');
+const topbarRight = document.getElementById('topbarRight');
+buttons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    buttons.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.view;
+    views.forEach(v=>v.classList.toggle('active', v.id === 'view-'+target));
+    document.getElementById('app').dataset.view = target;
+    document.body.style.background = target === 'home' ? 'var(--bg)' : (target === 'archive' ? 'var(--bg-dark)' : 'var(--bg)');
+    document.body.classList.toggle('grid-bg', target !== 'archive');
+    topbarRight.textContent = target === 'home' ? 'MTL' : (target === 'archive' ? String(projects.length).padStart(2,'0') + ' WORKS' : 'N.01');
+    detailPanel.classList.remove('active');
+    window.scrollTo(0,0);
+  });
+});
+
+/* ---------------- CURSOR DOT (archive only) ---------------- */
+const cursorDot = document.getElementById('cursorDot');
+const archiveSection = document.getElementById('view-archive');
+if(window.matchMedia('(pointer:fine)').matches){
+  document.addEventListener('mousemove', (e)=>{
+    const inArchive = archiveSection.classList.contains('active') || detailPanel.classList.contains('active');
+    cursorDot.style.opacity = inArchive ? '1' : '0';
+    cursorDot.style.left = e.clientX + 'px';
+    cursorDot.style.top = e.clientY + 'px';
+  });
+  document.querySelectorAll('.archive-item, .detail-back').forEach(el=>{
+    el.addEventListener('mouseenter', ()=>{cursorDot.style.width='16px';cursorDot.style.height='16px';});
+    el.addEventListener('mouseleave', ()=>{cursorDot.style.width='8px';cursorDot.style.height='8px';});
+  });
+}
+</script>
+</body>
+</html>
