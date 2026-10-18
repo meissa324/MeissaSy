@@ -29,3 +29,44 @@ create policy "Users can manage their own speech texts" on public.speech_texts
 
 create index if not exists notes_user_created_idx on public.notes(user_id, created_at desc);
 create index if not exists speech_texts_user_created_idx on public.speech_texts(user_id, created_at);
+
+create table if not exists public.moodboards (
+  id text not null,
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  title text not null check (char_length(title) between 1 and 100),
+  strokes jsonb not null default '[]'::jsonb,
+  primary key (id, user_id)
+);
+
+create table if not exists public.moodboard_items (
+  id uuid primary key default gen_random_uuid(),
+  board_id text not null,
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  kind text not null check (kind in ('text', 'image', 'video')),
+  body text not null,
+  x integer not null default 40,
+  y integer not null default 40,
+  created_at timestamptz not null default now()
+);
+
+alter table public.moodboards enable row level security;
+alter table public.moodboard_items enable row level security;
+
+create policy "Users can manage their own moodboards" on public.moodboards
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can manage their own moodboard items" on public.moodboard_items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+insert into storage.buckets (id, name, public)
+values ('moodboard-media', 'moodboard-media', false)
+on conflict (id) do nothing;
+
+create policy "Users can upload moodboard media"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'moodboard-media' and (storage.foldername(name))[1] = (select auth.uid()::text));
+create policy "Users can read their moodboard media"
+on storage.objects for select to authenticated
+using (bucket_id = 'moodboard-media' and (storage.foldername(name))[1] = (select auth.uid()::text));
+create policy "Users can delete their moodboard media"
+on storage.objects for delete to authenticated
+using (bucket_id = 'moodboard-media' and (storage.foldername(name))[1] = (select auth.uid()::text));
