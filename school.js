@@ -5,10 +5,14 @@ if (!host) return;
 
 let courses = [], view = 'active', openId = null;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fail = e => showAuthMessage(e.message, true);
+const fail = e => {
+  const m = /relation .*courses|schema cache|does not exist/i.test(e.message) ? 'The courses table is missing. Run the courses SQL from supabase-schema.sql in the Supabase SQL Editor, then reload.' : e.message;
+  msg.textContent = m; msg.hidden = false;
+};
 
 host.innerHTML = `
 <style>
+.sc-msg{border-left:3px solid var(--red);background:#fffdf8;padding:12px 14px;margin-bottom:16px;font:12px/1.5 var(--mono);color:var(--red)}
 .sc-add{display:flex;gap:10px;margin:22px 0 6px}
 .sc-add input{flex:1;border:1px solid var(--line);background:#fffdf8;padding:12px;outline:none}
 .sc-tabs{display:flex;gap:8px;margin:18px 0 4px}
@@ -22,12 +26,13 @@ host.innerHTML = `
 .sc-notes{min-height:420px;margin-top:18px;font:14px/1.6 var(--sans)}
 .sc-bar{display:flex;align-items:center;gap:12px;margin-top:14px}
 </style>
-<div class="panel" id="scPanel"></div>`;
-const panel = host.querySelector('#scPanel');
+<div class="panel" id="scPanel"><div class="sc-msg" id="scMsg" hidden></div><div id="scBody"></div></div>`;
+const panel = host.querySelector('#scBody'), msg = host.querySelector('#scMsg');
 
 const fmt = d => new Intl.DateTimeFormat('en', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}).format(new Date(d));
 
 function renderList() {
+  msg.hidden = true;
   const shown = courses.filter(c => c.archived === (view === 'archived'));
   panel.innerHTML = `<div class="kicker">Study system</div><h2>Courses & notes</h2><span class="panel-sub">The things worth returning to.</span>
   <div class="sc-add"><input id="scName" maxlength="100" placeholder="New course name…"><button class="btn" id="scAdd">ADD COURSE +</button></div>
@@ -40,7 +45,7 @@ function renderList() {
   const add = async () => {
     const name = input.value.trim();
     if (!name) return;
-    if (!db) return showAuthMessage('Connect Supabase before adding private data.', true);
+    if (!db) return fail({message: 'Supabase is not connected.'});
     const {data, error} = await db.from('courses').insert({name}).select().single();
     if (error) return fail(error);
     courses.push(data); view = 'active'; renderList();
@@ -65,6 +70,7 @@ function renderList() {
 }
 
 function renderCourse() {
+  msg.hidden = true;
   const c = courses.find(x => x.id === openId);
   if (!c) { openId = null; return renderList(); }
   panel.innerHTML = `<button class="sc-act" id="scBack">← COURSES</button>
