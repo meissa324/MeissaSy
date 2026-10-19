@@ -73,3 +73,20 @@ using (bucket_id = 'moodboard-media' and (storage.foldername(name))[1] = (select
 create policy "Users can delete their moodboard media"
 on storage.objects for delete to authenticated
 using (bucket_id = 'moodboard-media' and (storage.foldername(name))[1] = (select auth.uid()::text));
+
+create table if not exists public.courses (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  name text not null check (char_length(name) between 1 and 100),
+  notes text not null default '' check (char_length(notes) <= 50000),
+  archived boolean not null default false,
+  created_at timestamptz not null default now(),
+  notes_updated_at timestamptz
+);
+
+alter table public.courses enable row level security;
+
+create policy "Users can manage their own courses" on public.courses
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists courses_user_created_idx on public.courses(user_id, created_at);
