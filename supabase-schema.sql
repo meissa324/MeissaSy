@@ -90,3 +90,5 @@ create policy "Users can manage their own courses" on public.courses
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create index if not exists courses_user_created_idx on public.courses(user_id, created_at);
+
+alter table public.notes add column if not exists completed_at timestamptz;
