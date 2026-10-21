@@ -308,11 +308,23 @@ new ResizeObserver(resize).observe(stage);
 if (document.fonts) { document.fonts.addEventListener('loadingdone', () => { measureCache.clear(); render(); }); document.fonts.load('28px Caveat'); }
 
 /* ---------- media ---------- */
-async function signedUrl(path) {
+const MEDIA_API = 'https://meissasy-media.meissasy.workers.dev';
+const blobUrls = new Map();
+async function mediaFetch(path, init = {}) {
+  const {data:{session}} = await db.auth.getSession();
+  if (!session) throw new Error('Sign in again to use media.');
+  return fetch(MEDIA_API + path, {...init, headers:{...init.headers, Authorization:'Bearer ' + session.access_token}});
+}
+async function mediaUrl(path) {
   if (/^https?:/.test(path)) return path;
-  const {data, error} = await db.storage.from('moodboard-media').createSignedUrl(path, 3600);
-  if (error) { toast(error.message, true); return ''; }
-  return data.signedUrl;
+  if (blobUrls.has(path)) return blobUrls.get(path);
+  try {
+    const r = await mediaFetch('/media/' + path);
+    if (!r.ok) throw new Error(await r.text());
+    const url = URL.createObjectURL(await r.blob());
+    blobUrls.set(path, url);
+    return url;
+  } catch (e) { toast(e.message, true); return ''; }
 }
 function getMedia(el) {
   const known = media.get(el.id);
@@ -320,7 +332,7 @@ function getMedia(el) {
   const m = {node:null};
   media.set(el.id, m);
   (async () => {
-    const url = el.yt ? `https://i.ytimg.com/vi/${el.yt}/hqdefault.jpg` : await signedUrl(el.path);
+    const url = el.yt ? `https://i.ytimg.com/vi/${el.yt}/hqdefault.jpg` : await mediaUrl(el.path);
     if (!url) return;
     const ready = (node, nw, nh) => {
       m.node = node;
@@ -354,8 +366,10 @@ async function addFile(file, at) {
   if (!/^(image|video)\//.test(file.type)) return;
   toast('Uploading…');
   const path = currentUser.id + '/' + uid() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
-  const {error} = await db.storage.from('moodboard-media').upload(path, file);
-  if (error) return toast(error.message, true);
+  try {
+    const r = await mediaFetch('/media/' + path, {method:'PUT', body:file, headers:{'Content-Type':file.type}});
+    if (!r.ok) return toast(await r.text(), true);
+  } catch (e) { return toast(e.message, true); }
   const nat = await naturalSize(file), s = Math.min(1, 360 / Math.max(nat.w, nat.h, 1));
   const w = Math.max(40, Math.round(nat.w * s)), h = Math.max(40, Math.round(nat.h * s)), c = at || viewCenter();
   const el = mk(file.type.startsWith('video/') ? 'video' : 'image', {x:Math.round(c.x - w / 2), y:Math.round(c.y - h / 2), w, h, path, fill:'transparent'});
@@ -375,7 +389,7 @@ function openMedia(el) {
     const f = document.createElement('iframe'); f.src = `https://www.youtube.com/embed/${el.yt}?autoplay=1`; f.allow = 'autoplay; encrypted-media; fullscreen'; f.allowFullscreen = true; box.append(f);
     $('#mediaModal').classList.add('open');
   } else {
-    signedUrl(el.path).then(url => {
+    mediaUrl(el.path).then(url => {
       if (!url) return;
       const v = document.createElement('video'); v.src = url; v.controls = true; v.autoplay = true; box.append(v);
       $('#mediaModal').classList.add('open');
@@ -510,7 +524,7 @@ delGo.onclick = async () => {
     const {data: others} = await db.from('moodboards').select('strokes');
     const keep = new Set((others || []).flatMap(r => (r.strokes && r.strokes.elements || []).map(e => e.path).filter(Boolean)));
     const orphaned = [...new Set(own)].filter(path => !keep.has(path));
-    if (orphaned.length) await db.storage.from('moodboard-media').remove(orphaned);
+    if (orphaned.length) await mediaFetch('/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({paths:orphaned})}).catch(() => {});
   }
   closeDel(); boardId = 'main'; await loadMoodboard(); toast('Canvas deleted');
 };
