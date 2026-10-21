@@ -480,6 +480,41 @@ $('#newBoard').onclick = async () => {
   boardId = id; await loadMoodboard();
 };
 
+/* ---------- delete canvas (type DELETE to confirm) ---------- */
+const delModal = document.createElement('div');
+delModal.className = 'modal';
+delModal.innerHTML = `<div class="modal-card"><button class="close" id="delBoardClose" aria-label="Close">×</button><div class="eyebrow">Delete canvas</div><h2 id="delBoardTitle"></h2><p>This permanently deletes the canvas and its uploaded images. This can't be undone. Type DELETE to confirm.</p><input id="delBoardPw" type="text" autocomplete="off" spellcheck="false" placeholder="Type DELETE"><div id="delBoardMsg"></div><button class="btn" id="delBoardGo" style="width:100%" disabled>DELETE FOREVER</button></div>`;
+document.body.append(delModal);
+const delPw = delModal.querySelector('#delBoardPw'), delMsg = delModal.querySelector('#delBoardMsg'), delGo = delModal.querySelector('#delBoardGo');
+const closeDel = () => { delModal.classList.remove('open'); delPw.value = ''; delMsg.textContent = ''; delGo.disabled = true; };
+delModal.querySelector('#delBoardClose').onclick = closeDel;
+delModal.addEventListener('mousedown', e => { if (e.target === delModal) closeDel(); });
+delPw.oninput = () => { delGo.disabled = delPw.value !== 'DELETE'; };
+delPw.onkeydown = e => { if (e.key === 'Enter' && !delGo.disabled) delGo.click(); if (e.key === 'Escape') closeDel(); };
+$('#deleteBoard').onclick = () => {
+  if (!db || !currentUser) return;
+  if (Object.keys(catalog).length < 2) return toast('Keep at least one canvas.', true);
+  delModal.querySelector('#delBoardTitle').textContent = '“' + catalog[boardId] + '”';
+  delModal.classList.add('open'); setTimeout(() => delPw.focus(), 0);
+};
+delGo.onclick = async () => {
+  if (delPw.value !== 'DELETE') return;
+  delGo.disabled = true; delMsg.textContent = 'Deleting…';
+  const id = boardId;
+  clearTimeout(saveTimer); dirty = false; loaded = false;
+  const own = els.filter(e => (e.type === 'image' || e.type === 'video') && e.path && !/^https?:/.test(e.path)).map(e => e.path);
+  const {error} = await db.from('moodboards').delete().eq('id', id);
+  if (error) { loaded = true; delMsg.textContent = error.message; delGo.disabled = delPw.value !== 'DELETE'; return; }
+  await db.from('moodboard_items').delete().eq('board_id', id);
+  if (own.length) {
+    const {data: others} = await db.from('moodboards').select('strokes');
+    const keep = new Set((others || []).flatMap(r => (r.strokes && r.strokes.elements || []).map(e => e.path).filter(Boolean)));
+    const orphaned = [...new Set(own)].filter(path => !keep.has(path));
+    if (orphaned.length) await db.storage.from('moodboard-media').remove(orphaned);
+  }
+  closeDel(); boardId = 'main'; await loadMoodboard(); toast('Canvas deleted');
+};
+
 /* ---------- text editing ---------- */
 function layoutTextarea() {
   const el = editing.el, s = textSize({...el, text:ta.value || ' '});
